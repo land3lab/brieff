@@ -24,7 +24,7 @@ from illustrator.content_extractor import (
     extract_from_pptx,
     extract_from_text,
 )
-from illustrator.pipeline import generate_for_chunks
+from illustrator.pipeline import generate_for_chunks, generate_infographic_for_chunks
 from illustrator.pptx_writer import embed_images
 
 st.set_page_config(page_title="교안 삽화 생성기", page_icon="🩵", layout="wide")
@@ -53,30 +53,54 @@ with st.sidebar:
         "OpenAI API Key", value=OPENAI_API_KEY or "", type="password",
         help="환경변수 OPENAI_API_KEY 또는 .env로 미리 설정해두면 매번 입력하지 않아도 됩니다.",
     )
-    include_mascot = st.checkbox(
-        "브리피 마스코트 추가 (선택, 기본은 첨부 예시처럼 주제별 아이콘 스타일)", value=False
+    output_mode = st.radio(
+        "출력 모드",
+        ["인포그래픽 슬라이드 (번호카드/표/비교)", "아이콘 단일 이미지"],
+        help="인포그래픽 모드는 첨부 예시처럼 용어+설명+아이콘이 조합된 완성된 슬라이드 한 장을 만듭니다.",
     )
+    is_infographic = output_mode.startswith("인포그래픽")
+
+    if is_infographic:
+        layout_choice = st.selectbox(
+            "레이아웃",
+            ["자동", "번호 카드형", "표(용어/의미)형", "비교(2단, VS)형"],
+        )
+        layout_map = {
+            "자동": "auto",
+            "번호 카드형": "numbered_cards",
+            "표(용어/의미)형": "table",
+            "비교(2단, VS)형": "comparison",
+        }
+        layout = layout_map[layout_choice]
+        include_mascot = False
+    else:
+        layout = None
+        include_mascot = st.checkbox(
+            "브리피 마스코트 추가 (선택, 기본은 첨부 예시처럼 주제별 아이콘 스타일)", value=False
+        )
+
     dry_run = st.checkbox(
         "미리보기 모드 (API 호출 없이 프롬프트만 확인, 비용 없음)", value=False
     )
 
-    st.subheader("스타일 참고 이미지 (선택)")
-    ref_upload_tab, ref_paste_tab = st.tabs(["파일 업로드", "클립보드 붙여넣기"])
-    with ref_upload_tab:
-        reference_file = st.file_uploader(
-            "참고 이미지 파일", type=["png", "jpg", "jpeg"], key="reference_upload"
-        )
-        if reference_file is not None:
-            st.session_state.reference_image = Image.open(reference_file)
-    with ref_paste_tab:
-        ref_paste_result = paste_image_button("📋 붙여넣기 (Ctrl+V로 복사한 이미지)", key="ref_paste")
-        if ref_paste_result.image_data is not None:
-            st.session_state.reference_image = ref_paste_result.image_data
-    if st.session_state.reference_image is not None:
-        st.image(st.session_state.reference_image, caption="적용될 참고 이미지", width=150)
-        if st.button("참고 이미지 지우기"):
-            st.session_state.reference_image = None
-            st.rerun()
+    if not is_infographic:
+        st.subheader("스타일 참고 이미지 (선택)")
+        ref_upload_tab, ref_paste_tab = st.tabs(["파일 업로드", "클립보드 붙여넣기"])
+        with ref_upload_tab:
+            reference_file = st.file_uploader(
+                "참고 이미지 파일", type=["png", "jpg", "jpeg"], key="reference_upload"
+            )
+            if reference_file is not None:
+                st.session_state.reference_image = Image.open(reference_file)
+        with ref_paste_tab:
+            ref_paste_result = paste_image_button("📋 붙여넣기 (Ctrl+V로 복사한 이미지)", key="ref_paste")
+            if ref_paste_result.image_data is not None:
+                st.session_state.reference_image = ref_paste_result.image_data
+        if st.session_state.reference_image is not None:
+            st.image(st.session_state.reference_image, caption="적용될 참고 이미지", width=150)
+            if st.button("참고 이미지 지우기"):
+                st.session_state.reference_image = None
+                st.rerun()
 
 st.subheader("교안 내용 입력")
 tab_file, tab_text, tab_paste = st.tabs(["파일/이미지 업로드", "텍스트 직접 입력", "캡처 이미지 붙여넣기"])
@@ -159,25 +183,36 @@ if generate_clicked:
         progress_bar.progress((index + 1) / total, text=f"{index + 1}/{total} - {stage}")
 
     with st.spinner("생성 중..."):
-        results = generate_for_chunks(
-            client,
-            chunks,
-            reference_image_path=reference_path,
-            dry_run=dry_run,
-            include_mascot=include_mascot,
-            on_progress=on_progress,
-        )
+        if is_infographic:
+            results = generate_infographic_for_chunks(
+                client,
+                chunks,
+                layout=layout,
+                dry_run=dry_run,
+                on_progress=on_progress,
+            )
+        else:
+            results = generate_for_chunks(
+                client,
+                chunks,
+                reference_image_path=reference_path,
+                dry_run=dry_run,
+                include_mascot=include_mascot,
+                on_progress=on_progress,
+            )
     progress_bar.empty()
     st.session_state.results = results
     st.session_state.source_pptx_path = source_pptx_path
+    st.session_state.was_infographic = is_infographic
 
 results = st.session_state.results
 if results:
     st.subheader("결과")
-    columns = st.columns(2)
+    num_columns = 1 if st.session_state.get("was_infographic") else 2
+    columns = st.columns(num_columns)
     images_by_index = {}
     for i, item in enumerate(results):
-        with columns[i % 2]:
+        with columns[i % num_columns]:
             st.markdown(f"**{item.index + 1}. {item.title or '(제목 없음)'}**")
             if item.image is not None:
                 st.image(item.image, use_container_width=True)
@@ -191,7 +226,8 @@ if results:
                     mime="image/png",
                     key=f"dl_{item.index}",
                 )
-            with st.expander("생성 프롬프트 보기"):
+            expander_label = "추출된 항목 보기" if st.session_state.get("was_infographic") else "생성 프롬프트 보기"
+            with st.expander(expander_label):
                 st.text(item.prompt)
 
     if st.session_state.source_pptx_path and images_by_index:

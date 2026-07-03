@@ -63,6 +63,23 @@ NEGATIVE_RULE = (
 )
 
 
+def build_icon_prompt(concept: str) -> str:
+    """Prompt for a single small icon meant to be composited into a
+    hand-built infographic layout (numbered card / table / comparison),
+    rather than used as a standalone illustration.
+    """
+    return (
+        f"A single isolated professional flat icon on a plain white background. "
+        f"Icon subject: {concept}. "
+        f"Style: {STYLE_KEYWORDS}. "
+        f"Composition: exactly one icon (or one tightly-grouped cluster of 2 related icons), "
+        f"centered, square framing, filling most of the frame, no card, no border, no shadow, "
+        f"no surrounding scene. "
+        f"Text: {TEXT_RULE}. "
+        f"Avoid: {NEGATIVE_RULE}."
+    )
+
+
 def build_prompt(concept: str, include_mascot: bool = False) -> str:
     """Compose the final text-to-image prompt for one slide/concept.
 

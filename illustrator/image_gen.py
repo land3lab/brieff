@@ -7,6 +7,20 @@ from openai import OpenAI
 from PIL import Image
 
 from illustrator.config import IMAGE_GEN_SIZE, IMAGE_MODEL
+from illustrator.style import build_icon_prompt
+
+ICON_GEN_SIZE = "1024x1024"
+
+
+def generate_icon(client: OpenAI, concept: str, reference_image_path: str | None = None) -> Image.Image:
+    """A single small square icon meant to be composited into an infographic
+    layout, as opposed to a full standalone 4:3 illustration."""
+    return generate_illustration(
+        client,
+        build_icon_prompt(concept),
+        reference_image_path=reference_image_path,
+        size=ICON_GEN_SIZE,
+    )
 
 
 def generate_illustration(

@@ -14,7 +14,7 @@ from pathlib import Path
 
 from illustrator.config import OPENAI_API_KEY
 from illustrator.content_extractor import extract_from_file, extract_from_text
-from illustrator.pipeline import generate_for_chunks
+from illustrator.pipeline import generate_for_chunks, generate_infographic_for_chunks
 from illustrator.pptx_writer import embed_images
 
 
@@ -41,6 +41,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="API를 호출하지 않고 생성될 프롬프트만 미리 확인",
+    )
+    parser.add_argument(
+        "--infographic",
+        action="store_true",
+        help="아이콘 단일 이미지 대신, 용어+설명+아이콘이 조합된 완성된 인포그래픽 슬라이드로 생성",
+    )
+    parser.add_argument(
+        "--layout",
+        choices=["auto", "numbered_cards", "table", "comparison"],
+        default="auto",
+        help="--infographic일 때 사용할 레이아웃 (기본: auto)",
     )
     return parser
 
@@ -75,14 +86,23 @@ def main() -> int:
     def report(index: int, total: int, stage: str) -> None:
         print(f"[{index + 1}/{total}] {stage}")
 
-    results = generate_for_chunks(
-        client,
-        chunks,
-        reference_image_path=args.reference,
-        dry_run=args.dry_run,
-        include_mascot=args.mascot,
-        on_progress=report,
-    )
+    if args.infographic:
+        results = generate_infographic_for_chunks(
+            client,
+            chunks,
+            layout=args.layout,
+            dry_run=args.dry_run,
+            on_progress=report,
+        )
+    else:
+        results = generate_for_chunks(
+            client,
+            chunks,
+            reference_image_path=args.reference,
+            dry_run=args.dry_run,
+            include_mascot=args.mascot,
+            on_progress=report,
+        )
 
     images_by_index = {}
     for item in results:
