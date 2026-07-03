@@ -7,6 +7,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from PIL import Image
+
 
 @dataclass
 class ContentChunk:
@@ -17,6 +19,19 @@ class ContentChunk:
     @property
     def combined_text(self) -> str:
         return f"{self.title}\n{self.body}".strip()
+
+
+@dataclass
+class ImageChunk:
+    """A slide's content given as a pasted/uploaded screenshot rather than text.
+
+    The image is sent to a vision-capable chat model to derive the visual
+    concept, so no local OCR dependency is needed.
+    """
+
+    index: int
+    image: Image.Image
+    title: str = "(붙여넣은 이미지)"
 
 
 def _chunk_from_texts(texts: list[tuple[str, str]]) -> list[ContentChunk]:
