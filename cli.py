@@ -33,9 +33,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="--input이 .pptx일 때, 생성된 이미지를 슬라이드에 삽입한 사본을 함께 저장",
     )
     parser.add_argument(
-        "--no-mascot",
+        "--mascot",
         action="store_true",
-        help="일관성 캐릭터(브리피)를 제외하고 생성",
+        help="주제별 아이콘 스타일에 브리피 마스코트를 추가로 등장시켜 생성 (기본은 미포함)",
     )
     parser.add_argument(
         "--dry-run",
@@ -80,7 +80,7 @@ def main() -> int:
         chunks,
         reference_image_path=args.reference,
         dry_run=args.dry_run,
-        include_mascot=not args.no_mascot,
+        include_mascot=args.mascot,
         on_progress=report,
     )
 

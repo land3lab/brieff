@@ -14,18 +14,25 @@ from PIL import Image
 from illustrator.config import CHAT_MODEL
 
 SYSTEM_PROMPT = (
-    "You turn a lecture slide's text into ONE short visual concept (max 20 English words) "
-    "describing a single concrete scene, object, icon or metaphor that represents the core idea. "
-    "Do not describe colors or art style, only the subject matter. "
+    "You turn a lecture slide's text into ONE short icon concept (max 20 English words) for a "
+    "professional flat-icon infographic illustration, in the style used in corporate/legal/tax "
+    "training slides. Describe a single icon or a small cluster of 2-3 recognizable icons "
+    "(e.g. a government/bank building, scales of justice, a law book, a businessperson at a "
+    "laptop, a warning triangle, a document with a stamp, a stack of coins, a calculator, a "
+    "checklist, a calendar, a shield with a checkmark) that best symbolizes the core idea. "
+    "Do not describe colors, art style, or any text/labels -- only the icon subject matter. "
     "Reply with only the concept sentence, no preamble."
 )
 
 IMAGE_SYSTEM_PROMPT = (
     "The user attaches a photo or screenshot of a lecture slide. Read whatever text or "
-    "diagrams are visible in it, then reply with ONE short visual concept (max 20 English words) "
-    "describing a single concrete scene, object, icon or metaphor that represents its core idea. "
-    "Do not describe colors or art style, only the subject matter. "
-    "Reply with only the concept sentence, no preamble."
+    "diagrams are visible in it, then reply with ONE short icon concept (max 20 English words) "
+    "for a professional flat-icon infographic illustration. Describe a single icon or a small "
+    "cluster of 2-3 recognizable icons (e.g. a government/bank building, scales of justice, a "
+    "law book, a businessperson at a laptop, a warning triangle, a document with a stamp, a "
+    "stack of coins, a calculator, a checklist, a calendar, a shield with a checkmark) that best "
+    "symbolizes its core idea. Do not describe colors, art style, or any text/labels -- only the "
+    "icon subject matter. Reply with only the concept sentence, no preamble."
 )
 
 

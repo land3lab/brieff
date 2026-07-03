@@ -53,7 +53,9 @@ with st.sidebar:
         "OpenAI API Key", value=OPENAI_API_KEY or "", type="password",
         help="환경변수 OPENAI_API_KEY 또는 .env로 미리 설정해두면 매번 입력하지 않아도 됩니다.",
     )
-    include_mascot = st.checkbox("일관성 캐릭터(브리피) 포함", value=True)
+    include_mascot = st.checkbox(
+        "브리피 마스코트 추가 (선택, 기본은 첨부 예시처럼 주제별 아이콘 스타일)", value=False
+    )
     dry_run = st.checkbox(
         "미리보기 모드 (API 호출 없이 프롬프트만 확인, 비용 없음)", value=False
     )
