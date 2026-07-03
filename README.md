@@ -1,0 +1,75 @@
+# brieff — 교안 삽화 자동 생성기
+
+한국열린사이버대학교 교안(PPT/PDF/DOCX/텍스트)을 넣으면, **파란색 톤의 일관된 캐릭터**가 등장하는
+4:3 비율 삽화를 슬라이드마다 자동으로 생성하는 개인용 도구입니다. 이미지 생성은 OpenAI의
+이미지 생성 모델(`gpt-image-1`, 이른바 "챗GPT 이미지 생성")을 사용합니다.
+
+- 모든 이미지는 동일한 마스코트(브리피)·색상(딥블루/스카이블루)·플랫 일러스트 스타일을 강제하는
+  고정 프롬프트 템플릿(`illustrator/style.py`)을 공유하므로, 여러 장을 만들어도 하나의 세트처럼 보입니다.
+- 글씨는 최소화하도록 프롬프트에 명시하고, 본문 내용은 GPT로 한 문장짜리 시각적 컨셉으로 압축한 뒤
+  그림에 반영합니다.
+- `gpt-image-1`은 정확한 4:3 크기를 직접 지원하지 않으므로, 가장 가까운 크기(1536x1024)로 생성한 뒤
+  가운데를 잘라 정확히 4:3(기본 1600x1200)으로 만듭니다.
+
+## 설치
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # OPENAI_API_KEY 입력
+```
+
+## 사용법 1 — 웹 UI (추천, 혼자 쓰기 편함)
+
+```bash
+streamlit run app.py
+```
+
+브라우저가 열리면 PPT/PDF/DOCX/텍스트를 업로드하거나 텍스트를 붙여넣고 "삽화 생성하기"를 누르면
+슬라이드별 삽화가 갤러리로 표시됩니다. 개별 이미지를 다운로드하거나, PPT를 업로드한 경우
+"PPT에 삽화 삽입하여 다운로드용 파일 생성" 버튼으로 삽화가 들어간 사본을 받을 수 있습니다.
+
+- **미리보기 모드**를 켜면 API를 호출하지 않고 어떤 프롬프트가 생성될지만 확인할 수 있어(비용 없음),
+  본격적으로 이미지를 생성하기 전에 문구를 점검하기 좋습니다.
+
+## 사용법 2 — CLI (배치 처리)
+
+```bash
+# PPT 전체 슬라이드에 대해 삽화 생성 + 삽화가 삽입된 PPT 사본까지 생성
+python cli.py --input lecture01.pptx --output-dir out/lecture01 --embed
+
+# 텍스트만으로 빠르게 생성 (빈 줄로 슬라이드 구분)
+python cli.py --text "$(cat notes.txt)" --output-dir out/quick
+
+# API 호출 없이 프롬프트만 미리 확인 (비용 없음)
+python cli.py --input lecture01.pptx --output-dir out/preview --dry-run
+```
+
+## 스타일 커스터마이징
+
+`illustrator/style.py`의 `MASCOT_DESCRIPTION`, `PALETTE`, `STYLE_KEYWORDS`를 수정하면
+모든 이후 생성 이미지에 일괄 반영됩니다. 색상은 기본적으로 딥블루(#1E88E5)·스카이블루(#4FC3F7)·
+페일블루(#EAF6FF) 조합입니다.
+
+## 지원 입력 형식
+
+| 형식 | 처리 방식 |
+| --- | --- |
+| `.pptx` | 슬라이드별 제목 + 본문 텍스트 추출, `--embed`로 결과를 원본 PPT에 재삽입 가능 |
+| `.pdf` | 페이지별 텍스트 추출 (첫 줄을 제목으로 간주) |
+| `.docx` | 제목 스타일 문단 기준으로 섹션 분리 |
+| `.txt` / 직접 입력 텍스트 | 빈 줄(`\n\n`) 기준으로 슬라이드 단위 분리 |
+| 참고 이미지 (선택) | 업로드 시 `images.edit`으로 스타일 참고에 활용 |
+
+## 테스트
+
+```bash
+pip install pytest
+pytest
+```
+
+## 주의사항
+
+- OpenAI API 사용량에 따라 비용이 발생합니다. API 키는 본인만 사용하는 `.env`에 보관하세요
+  (`.env`는 `.gitignore`에 포함되어 있어 커밋되지 않습니다).
+- 개인 사용을 전제로 만들어졌기 때문에 로그인/권한 관리 기능은 포함하지 않았습니다.
