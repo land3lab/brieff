@@ -110,10 +110,14 @@ st.subheader("교안 내용 입력")
 tab_file, tab_text, tab_paste = st.tabs(["파일/이미지 업로드", "텍스트 직접 입력", "캡처 이미지 붙여넣기"])
 
 with tab_file:
-    uploaded_file = st.file_uploader(
-        "교안 파일 (.pptx, .pdf, .docx, .txt) 또는 슬라이드 이미지 (.png, .jpg)",
+    uploaded_files = st.file_uploader(
+        f"교안 파일 (.pptx, .pdf, .docx, .txt) 또는 슬라이드 이미지 (.png, .jpg) — 1개~{MAX_PAGES}개까지 첨부 가능",
         type=["pptx", "pdf", "docx", "txt", "png", "jpg", "jpeg"],
+        accept_multiple_files=True,
     )
+    if uploaded_files and len(uploaded_files) > MAX_PAGES:
+        st.warning(f"파일은 최대 {MAX_PAGES}개까지만 첨부할 수 있습니다. 앞의 {MAX_PAGES}개만 사용됩니다.")
+        uploaded_files = uploaded_files[:MAX_PAGES]
 
 with tab_text:
     manual_text = st.text_area(
@@ -144,7 +148,7 @@ with tab_paste:
 generate_clicked = st.button("삽화 생성하기", type="primary")
 
 if generate_clicked:
-    has_input = uploaded_file or manual_text.strip() or st.session_state.pasted_content_images
+    has_input = uploaded_files or manual_text.strip() or st.session_state.pasted_content_images
     if not has_input:
         st.warning("파일을 업로드하거나 텍스트를 입력하거나 이미지를 붙여넣어주세요.")
         st.stop()
@@ -160,19 +164,23 @@ if generate_clicked:
 
     chunks = []
     source_pptx_path = None
-    if uploaded_file is not None:
-        suffix = Path(uploaded_file.name).suffix.lower()
-        if suffix in IMAGE_SUFFIXES:
-            chunks.append(ImageChunk(index=0, image=Image.open(uploaded_file)))
-        else:
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            suffix = Path(uploaded_file.name).suffix.lower()
+            if suffix in IMAGE_SUFFIXES:
+                chunks.append(ImageChunk(index=len(chunks), image=Image.open(uploaded_file)))
+                continue
             tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
             tmp.write(uploaded_file.getvalue())
             tmp.close()
             if suffix == ".txt":
-                chunks = extract_from_text(Path(tmp.name).read_text(encoding="utf-8"))
+                new_chunks = extract_from_text(Path(tmp.name).read_text(encoding="utf-8"))
             else:
-                chunks = EXTRACTORS[suffix](tmp.name)
-            if suffix == ".pptx":
+                new_chunks = EXTRACTORS[suffix](tmp.name)
+            for new_chunk in new_chunks:
+                new_chunk.index = len(chunks)
+                chunks.append(new_chunk)
+            if suffix == ".pptx" and source_pptx_path is None:
                 source_pptx_path = tmp.name
     elif manual_text.strip():
         chunks = extract_from_text(manual_text)

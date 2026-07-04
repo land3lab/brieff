@@ -3,6 +3,7 @@
 
 Examples:
   python cli.py --input lecture01.pptx --output-dir out/lecture01 --embed
+  python cli.py --input slide1.png slide2.png slide3.png --output-dir out/batch
   python cli.py --text "이번 시간에는 데이터베이스 정규화를 배웁니다" --output-dir out/quick
   python cli.py --input lecture01.pptx --dry-run   # preview prompts, no API calls/cost
 """
@@ -13,17 +14,22 @@ import sys
 from pathlib import Path
 
 from illustrator.config import OPENAI_API_KEY
-from illustrator.content_extractor import extract_from_file, extract_from_text
+from illustrator.content_extractor import ImageChunk, extract_from_file, extract_from_text
 from illustrator.pipeline import generate_for_chunks, generate_infographic_for_chunks
 from illustrator.pptx_writer import embed_images
 
 MAX_PAGES = 10
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="한국열린사이버대학교 교안 삽화 생성기")
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--input", help="입력 파일 경로 (.pptx, .pdf, .docx, .txt)")
+    source.add_argument(
+        "--input",
+        nargs="+",
+        help=f"입력 파일 경로 1개~{MAX_PAGES}개 (.pptx, .pdf, .docx, .txt, .png, .jpg)",
+    )
     source.add_argument("--text", help="직접 입력할 텍스트")
     parser.add_argument("--output-dir", default="output", help="생성된 이미지를 저장할 폴더")
     parser.add_argument(
@@ -63,8 +69,25 @@ def main() -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    chunks = []
+    first_pptx_path = None
     if args.input:
-        chunks = extract_from_file(args.input)
+        input_paths = args.input[:MAX_PAGES]
+        if len(args.input) > MAX_PAGES:
+            print(f"파일은 최대 {MAX_PAGES}개까지만 처리합니다. 앞의 {MAX_PAGES}개만 사용합니다.")
+        for path in input_paths:
+            suffix = Path(path).suffix.lower()
+            if suffix in IMAGE_SUFFIXES:
+                from PIL import Image
+
+                chunks.append(ImageChunk(index=len(chunks), image=Image.open(path)))
+                continue
+            new_chunks = extract_from_file(path)
+            for new_chunk in new_chunks:
+                new_chunk.index = len(chunks)
+                chunks.append(new_chunk)
+            if suffix == ".pptx" and first_pptx_path is None:
+                first_pptx_path = path
     else:
         chunks = extract_from_text(args.text)
 
@@ -124,9 +147,9 @@ def main() -> int:
         else:
             print(f"저장됨 (프롬프트만): {prompt_path}")
 
-    if args.embed and args.input and Path(args.input).suffix.lower() == ".pptx" and images_by_index:
-        embedded_path = output_dir / f"{Path(args.input).stem}_with_illustrations.pptx"
-        embed_images(args.input, images_by_index, embedded_path)
+    if args.embed and first_pptx_path and images_by_index:
+        embedded_path = output_dir / f"{Path(first_pptx_path).stem}_with_illustrations.pptx"
+        embed_images(first_pptx_path, images_by_index, embedded_path)
         print(f"삽화가 삽입된 PPT 저장됨: {embedded_path}")
 
     return 0
