@@ -17,6 +17,8 @@ from illustrator.content_extractor import extract_from_file, extract_from_text
 from illustrator.pipeline import generate_for_chunks, generate_infographic_for_chunks
 from illustrator.pptx_writer import embed_images
 
+MAX_PAGES = 10
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="한국열린사이버대학교 교안 삽화 생성기")
@@ -69,6 +71,10 @@ def main() -> int:
     if not chunks:
         print("추출된 내용이 없습니다. 입력을 확인해주세요.", file=sys.stderr)
         return 1
+
+    if len(chunks) > MAX_PAGES:
+        print(f"입력 내용이 {len(chunks)}장이라 앞의 {MAX_PAGES}장만 처리합니다.")
+        chunks = chunks[:MAX_PAGES]
 
     client = None
     if not args.dry_run:

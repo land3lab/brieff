@@ -35,6 +35,7 @@ EXTRACTORS = {
     ".docx": extract_from_docx,
 }
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg"}
+MAX_PAGES = 10
 
 if "pasted_content_images" not in st.session_state:
     st.session_state.pasted_content_images = []
@@ -115,16 +116,21 @@ with tab_file:
     )
 
 with tab_text:
-    manual_text = st.text_area("빈 줄로 슬라이드를 구분해서 입력하세요", height=150)
+    manual_text = st.text_area(
+        f"빈 줄로 슬라이드를 구분해서 입력하세요 (최대 {MAX_PAGES}장까지 처리)", height=150
+    )
 
 with tab_paste:
     st.caption(
-        "슬라이드를 캡처(Print Screen, Win+Shift+S 등)한 뒤 클립보드에 있는 상태에서 "
-        "아래 버튼을 누르면 바로 추가됩니다. 여러 번 눌러 여러 장을 추가할 수 있습니다."
+        f"슬라이드를 캡처(Print Screen, Win+Shift+S 등)한 뒤 클립보드에 있는 상태에서 "
+        f"아래 버튼을 누르면 바로 추가됩니다. 최대 {MAX_PAGES}장까지 추가할 수 있습니다."
     )
     content_paste_result = paste_image_button("📋 캡처한 이미지 붙여넣기", key="content_paste")
     if content_paste_result.image_data is not None:
-        st.session_state.pasted_content_images.append(content_paste_result.image_data)
+        if len(st.session_state.pasted_content_images) >= MAX_PAGES:
+            st.warning(f"이미 최대 {MAX_PAGES}장이 추가되어 있습니다. 더 추가하려면 먼저 지워주세요.")
+        else:
+            st.session_state.pasted_content_images.append(content_paste_result.image_data)
     if st.session_state.pasted_content_images:
         st.write(f"추가된 캡처 이미지: {len(st.session_state.pasted_content_images)}장")
         preview_cols = st.columns(4)
@@ -173,6 +179,10 @@ if generate_clicked:
 
     for pasted_image in st.session_state.pasted_content_images:
         chunks.append(ImageChunk(index=len(chunks), image=pasted_image))
+
+    if len(chunks) > MAX_PAGES:
+        st.warning(f"입력 내용이 {len(chunks)}장이라 앞의 {MAX_PAGES}장만 처리합니다.")
+        chunks = chunks[:MAX_PAGES]
 
     if not chunks:
         st.error("추출된 내용이 없습니다. 입력 내용을 확인해주세요.")
