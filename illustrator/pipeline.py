@@ -94,6 +94,7 @@ def generate_infographic_for_chunks(
     client: OpenAI | None,
     chunks: list[ContentChunk | ImageChunk],
     layout: str = "auto",
+    reference_image_path: str | None = None,
     dry_run: bool = False,
     on_progress: ProgressCallback | None = None,
 ) -> list[GeneratedIllustration]:
@@ -128,7 +129,7 @@ def generate_infographic_for_chunks(
                 if on_progress:
                     on_progress(chunk.index, total, f"아이콘 생성 중... ({item_index + 1}/{needed})")
                 concept = concept_from_text(client, item["term"], item.get("description", ""))
-                icons.append(generate_icon(client, concept))
+                icons.append(generate_icon(client, concept, reference_image_path=reference_image_path))
 
         image = None
         if not dry_run and client is not None:

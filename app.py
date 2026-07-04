@@ -83,24 +83,27 @@ with st.sidebar:
         "미리보기 모드 (API 호출 없이 프롬프트만 확인, 비용 없음)", value=False
     )
 
-    if not is_infographic:
-        st.subheader("스타일 참고 이미지 (선택)")
-        ref_upload_tab, ref_paste_tab = st.tabs(["파일 업로드", "클립보드 붙여넣기"])
-        with ref_upload_tab:
-            reference_file = st.file_uploader(
-                "참고 이미지 파일", type=["png", "jpg", "jpeg"], key="reference_upload"
-            )
-            if reference_file is not None:
-                st.session_state.reference_image = Image.open(reference_file)
-        with ref_paste_tab:
-            ref_paste_result = paste_image_button("📋 붙여넣기 (Ctrl+V로 복사한 이미지)", key="ref_paste")
-            if ref_paste_result.image_data is not None:
-                st.session_state.reference_image = ref_paste_result.image_data
-        if st.session_state.reference_image is not None:
-            st.image(st.session_state.reference_image, caption="적용될 참고 이미지", width=150)
-            if st.button("참고 이미지 지우기"):
-                st.session_state.reference_image = None
-                st.rerun()
+    st.subheader("스타일 참고 이미지 (선택)")
+    st.caption(
+        "아이콘/그림을 생성할 때 이 이미지를 스타일 참고로 사용합니다 "
+        "(인포그래픽 모드에서는 각 아이콘 생성에 반영됩니다)."
+    )
+    ref_upload_tab, ref_paste_tab = st.tabs(["파일 업로드", "클립보드 붙여넣기"])
+    with ref_upload_tab:
+        reference_file = st.file_uploader(
+            "참고 이미지 파일", type=["png", "jpg", "jpeg"], key="reference_upload"
+        )
+        if reference_file is not None:
+            st.session_state.reference_image = Image.open(reference_file)
+    with ref_paste_tab:
+        ref_paste_result = paste_image_button("📋 붙여넣기 (Ctrl+V로 복사한 이미지)", key="ref_paste")
+        if ref_paste_result.image_data is not None:
+            st.session_state.reference_image = ref_paste_result.image_data
+    if st.session_state.reference_image is not None:
+        st.image(st.session_state.reference_image, caption="적용될 참고 이미지", width=150)
+        if st.button("참고 이미지 지우기"):
+            st.session_state.reference_image = None
+            st.rerun()
 
 st.subheader("교안 내용 입력")
 tab_file, tab_text, tab_paste = st.tabs(["파일/이미지 업로드", "텍스트 직접 입력", "캡처 이미지 붙여넣기"])
@@ -188,6 +191,7 @@ if generate_clicked:
                 client,
                 chunks,
                 layout=layout,
+                reference_image_path=reference_path,
                 dry_run=dry_run,
                 on_progress=on_progress,
             )

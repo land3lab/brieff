@@ -91,6 +91,7 @@ def main() -> int:
             client,
             chunks,
             layout=args.layout,
+            reference_image_path=args.reference,
             dry_run=args.dry_run,
             on_progress=report,
         )
